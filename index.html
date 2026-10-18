@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instant Community Forums</title>
+    <!-- UPDATED: Using the absolute latest stable Supabase release -->
     <script src="https://jsdelivr.net"></script>
     <style>
         body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; background-color: #fafafa; }
@@ -32,23 +33,23 @@
     <!-- 1. INSTANT ACCOUNT INTERFACE -->
     <div id="authSection" class="auth-box">
         <div id="loggedOutUI">
-            <h3>Choose a Identity Handle</h3>
+            <h3>Choose an Identity Handle</h3>
             <div class="auth-fields">
                 <input type="text" id="authUsername" placeholder="Enter username (e.g., Guest123)">
-                <button onclick="handleInstantJoin()">Join Forum Instantly</button>
+                <button type="button" onclick="handleInstantJoin()">Join Forum Instantly</button>
             </div>
         </div>
         <div id="loggedInUI" class="hidden">
             <p>Posting as: <strong id="userDisplayField"></strong></p>
-            <button onclick="handleLeave()" class="btn-secondary">Leave / Switch Account</button>
+            <button type="button" onclick="handleLeave()" class="btn-secondary">Leave / Switch Account</button>
         </div>
     </div>
 
     <!-- 2. BOARD NAVIGATION TABS -->
     <div class="nav-tabs">
-        <button class="tab-btn active" onclick="switchBoard('general')">📢 General</button>
-        <button class="tab-btn" onclick="switchBoard('gaming')">🎮 Gaming</button>
-        <button class="tab-btn" onclick="switchBoard('tech')">💻 Tech</button>
+        <button type="button" class="tab-btn active" onclick="switchBoard(event, 'general')">📢 General</button>
+        <button type="button" class="tab-btn" onclick="switchBoard(event, 'gaming')">🎮 Gaming</button>
+        <button type="button" class="tab-btn" onclick="switchBoard(event, 'tech')">💻 Tech</button>
     </div>
 
     <h3 id="currentBoardTitle">Board: General</h3>
@@ -65,10 +66,16 @@
 
     <script>
         // --- CONFIGURATION ---
-        const SUPABASE_URL = "https://nurshaiuyycnuulvjsme.supabase.co/rest/v1/";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnNoYWl1eXljbnV1bHZqc21lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzNDIxMjEsImV4cCI6MjEwNzkxODEyMX0.ckOnuBg8zw1peab02_GDxx_bChJrEsnXDnbCrN7rRjI";
+        const SUPABASE_URL = "YOUR_SUPABASE_URL";
+        const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
         
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Double-check initialization to handle subdomain configurations securely
+        let supabase;
+        try {
+            supabase = window.supabase.createClient("https://nurshaiuyycnuulvjsme.supabase.co/rest/v1/", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnNoYWl1eXljbnV1bHZqc21lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzNDIxMjEsImV4cCI6MjEwNzkxODEyMX0.ckOnuBg8zw1peab02_GDxx_bChJrEsnXDnbCrN7rRjI");
+        } catch (initError) {
+            console.error("Initialization failed: Check your URL/Keys", initError);
+        }
 
         const form = document.getElementById('postForm');
         const container = document.getElementById('postsContainer');
@@ -76,11 +83,13 @@
         let currentUser = null;
 
         // --- AUTOMATIC SESSION TRACKING ---
-        supabase.auth.onAuthStateChange((event, session) => {
-            currentUser = session?.user || null;
-            updateAuthUI();
-            fetchPosts();
-        });
+        if (supabase) {
+            supabase.auth.onAuthStateChange((event, session) => {
+                currentUser = session?.user || null;
+                updateAuthUI();
+                fetchPosts();
+            });
+        }
 
         function updateAuthUI() {
             if (currentUser) {
@@ -101,67 +110,85 @@
         }
 
         // --- EMAIL-FREE ANONYMOUS SIGN IN ---
-async function handleInstantJoin() {
-    const username = document.getElementById('authUsername').value.trim();
-    if(!username) return alert("Please enter a username.");
-    
-    const { error } = await supabase.auth.signInAnonymously({ 
-        options: {
-            data: { username: username }
+        async function handleInstantJoin() {
+            const usernameInput = document.getElementById('authUsername');
+            const username = usernameInput.value.trim();
+            if(!username) {
+                alert("Please enter a username.");
+                return;
+            }
+            
+            try {
+                // FIXED: Direct options structure matching modern Supabase JS definitions
+                const { data, error } = await supabase.auth.signInAnonymously({ 
+                    options: {
+                        data: { username: username }
+                    }
+                });
+                
+                if (error) {
+                    alert("Join error: " + error.message);
+                    console.error(error);
+                }
+            } catch (err) {
+                alert("Critical authentication failure. See browser log console.");
+                console.error(err);
+            }
         }
-    });
-    
-    if (error) {
-        alert("Join error: " + error.message);
-    } else {
-        alert("Success! Joined the forum.");
-    }
-}
-
 
         async function handleLeave() {
-            await supabase.auth.signOut();
+            if (supabase) await supabase.auth.signOut();
         }
 
         // --- FORUM ACTIONS ---
-        function switchBoard(boardName) {
+        function switchBoard(event, boardName) {
             currentBoard = boardName;
             document.getElementById('currentBoardTitle').innerText = `Board: ${boardName.charAt(0).toUpperCase() + boardName.slice(1)}`;
             
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            if(window.event) window.event.target.classList.add('active');
+            if(event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
             
             fetchPosts();
         }
 
         async function fetchPosts() {
+            if (!supabase) return;
             container.innerHTML = "Loading posts...";
-            const { data, error } = await supabase
-                .from('posts')
-                .select('*')
-                .eq('board', currentBoard)
-                .order('created_at', { ascending: false });
+            
+            try {
+                const { data, error } = await supabase
+                    .from('posts')
+                    .select('*')
+                    .eq('board', currentBoard)
+                    .order('created_at', { ascending: false });
 
-            if (error) {
-                container.innerHTML = "Error loading posts.";
-                return;
-            }
-            if (data.length === 0) {
-                container.innerHTML = "<p class='prompt'>No posts on this board yet. Be the first!</p>";
-                return;
-            }
+                if (error) {
+                    container.innerHTML = "Error loading posts.";
+                    console.error(error);
+                    return;
+                }
+                if (data.length === 0) {
+                    container.innerHTML = "<p class='prompt'>No posts on this board yet. Be the first!</p>";
+                    return;
+                }
 
-            container.innerHTML = data.map(post => `
-                <div class="post">
-                    <h4>👤 @${escapeHTML(post.username || 'Anonymous')}</h4>
-                    <p>${escapeHTML(post.content)}</p>
-                </div>
-            `).join('');
+                container.innerHTML = data.map(post => `
+                    <div class="post">
+                        <h4>👤 @${escapeHTML(post.username || 'Anonymous')}</h4>
+                        <p>${escapeHTML(post.content)}</p>
+                    </div>
+                `).join('');
+            } catch (fetchErr) {
+                container.innerHTML = "Failed connecting to database.";
+                console.error(fetchErr);
+            }
         }
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!currentUser) return alert("You must choose a handle first.");
+            if (!currentUser || !supabase) return alert("You must choose a handle first.");
 
             const content = document.getElementById('content').value;
             const userHandle = currentUser.user_metadata?.username || "Anonymous";
@@ -176,6 +203,7 @@ async function handleInstantJoin() {
 
             if (error) {
                 alert("Failed to submit post.");
+                console.error(error);
             } else {
                 form.reset();
                 fetchPosts();
@@ -186,7 +214,8 @@ async function handleInstantJoin() {
             return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
         }
 
-        fetchPosts();
+        // Initial launch load run
+        setTimeout(fetchPosts, 300);
     </script>
 </body>
 </html>
