@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instant Community Forums</title>
+    
+    <!-- FIXED: Points directly to your local file to bypass all network and CORS blocks -->
+    <script src="supabase.js"></script>
+    
     <style>
         body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; background-color: #fafafa; }
         .auth-box { background: #ffffff; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
@@ -34,25 +38,25 @@
             <h3>Choose an Identity Handle</h3>
             <div class="auth-fields">
                 <input type="text" id="authUsername" placeholder="Enter username (e.g., Guest123)">
-                <button type="button" id="joinBtn">Join Forum Instantly</button>
+                <button type="button" onclick="handleInstantJoin()">Join Forum Instantly</button>
             </div>
         </div>
         <div id="loggedInUI" class="hidden">
             <p>Posting as: <strong id="userDisplayField"></strong></p>
-            <button type="button" id="leaveBtn" class="btn-secondary">Leave / Switch Account</button>
+            <button type="button" onclick="handleLeave()" class="btn-secondary">Leave / Switch Account</button>
         </div>
     </div>
 
     <!-- 2. BOARD NAVIGATION TABS -->
     <div class="nav-tabs">
-        <button type="button" class="tab-btn active" data-board="general">📢 General</button>
-        <button type="button" class="tab-btn" data-board="gaming">🎮 Gaming</button>
-        <button type="button" class="tab-btn" data-board="tech">💻 Tech</button>
+        <button type="button" class="tab-btn active" onclick="switchBoard(event, 'general')">📢 General</button>
+        <button type="button" class="tab-btn" onclick="switchBoard(event, 'gaming')">🎮 Gaming</button>
+        <button type="button" class="tab-btn" onclick="switchBoard(event, 'tech')">💻 Tech</button>
     </div>
 
     <h3 id="currentBoardTitle">Board: General</h3>
 
-    <!-- 3. POSTING FORM (Conditional Display) -->
+    <!-- 3. POSTING FORM -->
     <form id="postForm" class="hidden">
         <textarea id="content" placeholder="Write something on this board..." rows="3" required></textarea>
         <button type="submit">Publish Post</button>
@@ -62,44 +66,38 @@
     <!-- 4. LIVE FEED CONTAINER -->
     <div id="postsContainer">Loading posts...</div>
 
-    <!-- FIXED: Added type="module" to import Supabase dynamically -->
-    <script type="module">
-        import { createClient } from 'https://unpkg.com';
-
+    <script>
         // --- CONFIGURATION ---
-        const MY_SUPABASE_URL = "https://nurshaiuyycnuulvjsme.supabase.co"; 
-        const MY_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnNoYWl1eXljbnV1bHZqc21lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzNDIxMjEsImV4cCI6MjEwNzkxODEyMX0.ckOnuBg8zw1peab02_GDxx_bChJrEsnXDnbCrN7rRjI"; // Paste your complete key string here
+        const MY_SUPABASE_URL = "https://supabase.co"; 
+        const MY_SUPABASE_KEY = "YOUR_ANON_KEY_HERE"; // <-- Put your full key string here
 
-        const supabase = createClient(MY_SUPABASE_URL, MY_SUPABASE_KEY);
+        let supabase;
+        try {
+            // Uses the localized script library directly from your own subdomain repo
+            supabase = window.supabase.createClient(MY_SUPABASE_URL, MY_SUPABASE_KEY);
+        } catch (initError) {
+            console.error("Initialization failed: Check your configurations", initError);
+        }
 
         const form = document.getElementById('postForm');
         const container = document.getElementById('postsContainer');
         let currentBoard = 'general';
         let currentUser = null;
 
-        // --- ATTACH BUTTON CLICKS (Fixed scoping issues for modules) ---
-        document.getElementById('joinBtn').addEventListener('click', handleInstantJoin);
-        document.getElementById('leaveBtn').addEventListener('click', handleLeave);
-        
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => switchBoard(e, e.target.getAttribute('data-board')));
-        });
-
-        // --- AUTOMATIC SESSION TRACKING ---
-        supabase.auth.onAuthStateChange((event, session) => {
-            currentUser = session?.user || null;
-            updateAuthUI();
-            fetchPosts();
-        });
+        if (supabase) {
+            supabase.auth.onAuthStateChange((event, session) => {
+                currentUser = session?.user || null;
+                updateAuthUI();
+                fetchPosts();
+            });
+        }
 
         function updateAuthUI() {
             if (currentUser) {
                 document.getElementById('loggedOutUI').classList.add('hidden');
                 document.getElementById('loggedInUI').classList.remove('hidden');
-                
                 const displayUsername = currentUser.user_metadata?.username || "Guest";
                 document.getElementById('userDisplayField').innerText = "@" + displayUsername;
-                
                 form.classList.remove('hidden');
                 document.getElementById('loginPrompt').classList.add('hidden');
             } else {
@@ -110,10 +108,8 @@
             }
         }
 
-        // --- ANONYMOUS SIGN IN ---
         async function handleInstantJoin() {
-            const usernameInput = document.getElementById('authUsername');
-            const username = usernameInput.value.trim();
+            const username = document.getElementById('authUsername').value.trim();
             if(!username) return alert("Please enter a username.");
             
             try {
@@ -127,21 +123,19 @@
         }
 
         async function handleLeave() {
-            await supabase.auth.signOut();
+            if (supabase) await supabase.auth.signOut();
         }
 
-        // --- FORUM ACTIONS ---
         function switchBoard(event, boardName) {
             currentBoard = boardName;
             document.getElementById('currentBoardTitle').innerText = `Board: ${boardName.charAt(0).toUpperCase() + boardName.slice(1)}`;
-            
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             if(event && event.currentTarget) event.currentTarget.classList.add('active');
-            
             fetchPosts();
         }
 
         async function fetchPosts() {
+            if (!supabase) return;
             container.innerHTML = "Loading posts...";
             try {
                 const { data, error } = await supabase
@@ -172,18 +166,14 @@
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!currentUser) return alert("You must choose a handle first.");
+            if (!currentUser || !supabase) return alert("You must choose a handle first.");
 
             const content = document.getElementById('content').value;
             const userHandle = currentUser.user_metadata?.username || "Anonymous";
 
             const { error } = await supabase
                 .from('posts')
-                .insert([{ 
-                    content, 
-                    board: currentBoard, 
-                    username: userHandle 
-                }]);
+                .insert([{ content, board: currentBoard, username: userHandle }]);
 
             if (error) {
                 alert("Failed to submit post.");
@@ -197,7 +187,7 @@
             return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
         }
 
-        fetchPosts();
+        setTimeout(fetchPosts, 300);
     </script>
 </body>
 </html>
