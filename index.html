@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instant Community Forums</title>
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; background-color: #fafafa; }
+        .auth-box { background: #ffffff; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .auth-fields { display: flex; gap: 10px; max-width: 400px; margin-bottom: 12px; }
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+        .tab-btn { padding: 8px 16px; cursor: pointer; border: 1px solid #ccc; background: #f0f0f0; border-radius: 4px; font-weight: bold; }
+        .tab-btn.active { background: #007bff; color: white; border-color: #007bff; }
+        form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px; }
+        input, textarea, button { padding: 10px; font-size: 16px; border-radius: 4px; border: 1px solid #ccc; }
+        button { background: #007bff; color: white; cursor: pointer; border: none; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover { background: #5a6268; }
+        .post { background: #ffffff; padding: 15px; margin-bottom: 12px; border-radius: 6px; border: 1px solid #eee; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .post h4 { margin: 0 0 5px 0; color: #007bff; font-size: 14px; }
+        .post p { margin: 0; color: #333; line-height: 1.4; }
+        .hidden { display: none !important; }
+        .prompt { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <h2>Instant Community Forums</h2>
+
+    <!-- 1. INSTANT ACCOUNT INTERFACE -->
+    <div id="authSection" class="auth-box">
+        <div id="loggedOutUI">
+            <h3>Choose a Identity Handle</h3>
+            <div class="auth-fields">
+                <input type="text" id="authUsername" placeholder="Enter username (e.g., Guest123)">
+                <button onclick="handleInstantJoin()">Join Forum Instantly</button>
+            </div>
+        </div>
+        <div id="loggedInUI" class="hidden">
+            <p>Posting as: <strong id="userDisplayField"></strong></p>
+            <button onclick="handleLeave()" class="btn-secondary">Leave / Switch Account</button>
+        </div>
+    </div>
+
+    <!-- 2. BOARD NAVIGATION TABS -->
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchBoard('general')">📢 General</button>
+        <button class="tab-btn" onclick="switchBoard('gaming')">🎮 Gaming</button>
+        <button class="tab-btn" onclick="switchBoard('tech')">💻 Tech</button>
+    </div>
+
+    <h3 id="currentBoardTitle">Board: General</h3>
+
+    <!-- 3. POSTING FORM (Conditional Display) -->
+    <form id="postForm" class="hidden">
+        <textarea id="content" placeholder="Write something on this board..." rows="3" required></textarea>
+        <button type="submit">Publish Post</button>
+    </form>
+    <div id="loginPrompt" class="auth-box prompt">Please pick a username above to drop a post.</div>
+
+    <!-- 4. LIVE FEED CONTAINER -->
+    <div id="postsContainer">Loading posts...</div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const SUPABASE_URL = "https://nurshaiuyycnuulvjsme.supabase.co/rest/v1/";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnNoYWl1eXljbnV1bHZqc21lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzNDIxMjEsImV4cCI6MjEwNzkxODEyMX0.ckOnuBg8zw1peab02_GDxx_bChJrEsnXDnbCrN7rRjI";
+        
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const form = document.getElementById('postForm');
+        const container = document.getElementById('postsContainer');
+        let currentBoard = 'general';
+        let currentUser = null;
+
+        // --- AUTOMATIC SESSION TRACKING ---
+        supabase.auth.onAuthStateChange((event, session) => {
+            currentUser = session?.user || null;
+            updateAuthUI();
+            fetchPosts();
+        });
+
+        function updateAuthUI() {
+            if (currentUser) {
+                document.getElementById('loggedOutUI').classList.add('hidden');
+                document.getElementById('loggedInUI').classList.remove('hidden');
+                
+                const displayUsername = currentUser.user_metadata?.username || "Guest";
+                document.getElementById('userDisplayField').innerText = "@" + displayUsername;
+                
+                form.classList.remove('hidden');
+                document.getElementById('loginPrompt').classList.add('hidden');
+            } else {
+                document.getElementById('loggedOutUI').classList.remove('hidden');
+                document.getElementById('loggedInUI').classList.add('hidden');
+                form.classList.add('hidden');
+                document.getElementById('loginPrompt').classList.remove('hidden');
+            }
+        }
+
+        // --- EMAIL-FREE ANONYMOUS SIGN IN ---
+        async function handleInstantJoin() {
+            const username = document.getElementById('authUsername').value.trim();
+            if(!username) return alert("Please enter a username.");
+            
+            // Sign in anonymously while attaching custom user metadata payload parameters
+            const { error } = await supabase.auth.signInAnonymously({ 
+                options: {
+                    data: { username: username }
+                }
+            });
+            if (error) alert("Join error: " + error.message);
+        }
+
+        async function handleLeave() {
+            await supabase.auth.signOut();
+        }
+
+        // --- FORUM ACTIONS ---
+        function switchBoard(boardName) {
+            currentBoard = boardName;
+            document.getElementById('currentBoardTitle').innerText = `Board: ${boardName.charAt(0).toUpperCase() + boardName.slice(1)}`;
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            if(window.event) window.event.target.classList.add('active');
+            
+            fetchPosts();
+        }
+
+        async function fetchPosts() {
+            container.innerHTML = "Loading posts...";
+            const { data, error } = await supabase
+                .from('posts')
+                .select('*')
+                .eq('board', currentBoard)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                container.innerHTML = "Error loading posts.";
+                return;
+            }
+            if (data.length === 0) {
+                container.innerHTML = "<p class='prompt'>No posts on this board yet. Be the first!</p>";
+                return;
+            }
+
+            container.innerHTML = data.map(post => `
+                <div class="post">
+                    <h4>👤 @${escapeHTML(post.username || 'Anonymous')}</h4>
+                    <p>${escapeHTML(post.content)}</p>
+                </div>
+            `).join('');
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUser) return alert("You must choose a handle first.");
+
+            const content = document.getElementById('content').value;
+            const userHandle = currentUser.user_metadata?.username || "Anonymous";
+
+            const { error } = await supabase
+                .from('posts')
+                .insert([{ 
+                    content, 
+                    board: currentBoard, 
+                    username: userHandle 
+                }]);
+
+            if (error) {
+                alert("Failed to submit post.");
+            } else {
+                form.reset();
+                fetchPosts();
+            }
+        });
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        }
+
+        fetchPosts();
+    </script>
+</body>
+</html>
