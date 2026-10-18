@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instant Community Forums</title>
-    <!-- Include the Official Supabase JS SDK -->
-    <script src="https://jsdelivr.net"></script>
+    <script src="https://cloudflare.com"></script>
     <style>
         body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
         .post-card { border: 1px solid #ddd; padding: 15px; margin: 12px 0; border-radius: 5px; }
@@ -20,7 +19,7 @@
 
     <h2>Instant Community Forums</h2>
 
-    <!-- 1. AUTHENTICATION INTERFACE (Handles Registration & Authentication Sign-In) -->
+    <!-- AUTHENTICATION FORM -->
     <div id="auth-section">
         <h3>Choose an Identity Handle & Sign Up</h3>
         <input type="text" id="username" placeholder="Pick a username" required><br>
@@ -30,14 +29,14 @@
         <button onclick="signUp()">Register (Verify Email)</button>
     </div>
 
-    <!-- 2. LOGGED IN STATUS CONTROLS -->
+    <!-- LOGGED IN ACCOUNT ROW -->
     <div id="user-section" style="display: none;">
         <p>Posting as: <strong id="display-user-handle"></strong></p>
         <button onclick="signOut()">Leave / Switch Account</button>
     </div>
 
     <br>
-    <!-- 3. BOARD NAVIGATION LINKS -->
+    <!-- TOP BOARDS SWITCHER -->
     <nav>
         <button onclick="switchBoard('General')">📢 General</button>
         <button onclick="switchBoard('Gaming')">🎮 Gaming</button>
@@ -46,56 +45,76 @@
 
     <h3 id="board-title">Board: General</h3>
 
-    <!-- 4. POST CREATION COMPONENT -->
+    <!-- CREATE SUBMISSION WRAPPER -->
     <div id="publish-section" style="display: none;">
         <textarea id="post-content" rows="4" placeholder="Drop a post..."></textarea><br>
         <button onclick="publishPost()">Publish Post</button>
     </div>
-    <p id="auth-warning">Please pick a username and register above to drop a post.</p>
+    <p id="auth-warning">Please pick a username and register above to post.</p>
 
     <hr>
 
-    <!-- 5. FEED STREAM -->
+    <!-- LIVE POST LIST -->
     <div id="posts-container">Loading posts...</div>
 
     <script>
-        // REPLACE THESE STRINGS WITH YOUR ACTUAL PROJECT CREDENTIALS FROM YOUR SUPABASE DASHBOARD
-        const SUPABASE_URL = 'https://nurshaiuyycnuulvjsme.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnNoYWl1eXljbnV1bHZqc21lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzNDIxMjEsImV4cCI6MjEwNzkxODEyMX0.ckOnuBg8zw1peab02_GDxx_bChJrEsnXDnbCrN7rRjI';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+        let supabase = null;
         let currentUser = null;
         let currentBoard = 'General';
 
-        // 1. AUTOMATICALLY MONITOR AUTH CHANGES STATE
-        supabase.auth.onAuthStateChange((event, session) => {
-            const authSection = document.getElementById('auth-section');
-            const userSection = document.getElementById('user-section');
-            const publishSection = document.getElementById('publish-section');
-            const authWarning = document.getElementById('auth-warning');
-            const handleSpan = document.getElementById('display-user-handle');
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL'; 
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
-            if (session) {
-                currentUser = session.user;
-                authSection.style.display = 'none';
-                userSection.style.display = 'block';
-                publishSection.style.display = 'block';
-                authWarning.style.display = 'none';
-                
-                // Fetch user handle metadata set during sign up
-                handleSpan.innerText = currentUser.user_metadata.username || currentUser.email;
-            } else {
-                currentUser = null;
-                authSection.style.display = 'block';
-                userSection.style.display = 'none';
-                publishSection.style.display = 'none';
-                authWarning.style.display = 'block';
+        window.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('posts-container');
+            
+            if (typeof window.supabase === 'undefined') {
+                container.innerHTML = '<b style="color:red">Network Error: The Supabase library failed to download. Please refresh the page.</b>';
+                return;
             }
-            loadPosts();
+
+            if (SUPABASE_URL === 'https://nurshaiuyycnuulvjsme.supabase.co' || SUPABASE_ANON_KEY === 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnNoYWl1eXljbnV1bHZqc21lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzNDIxMjEsImV4cCI6MjEwNzkxODEyMX0.ckOnuBg8zw1peab02_GDxx_bChJrEsnXDnbCrN7rRjI') {
+                container.innerHTML = '<b style="color:orange">Config Warning: Insert your real Supabase URL & Key in the code.</b>';
+                return;
+            }
+
+            try {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                initAuthListener();
+            } catch (e) {
+                console.error(e);
+            }
         });
 
-        // 2. CREATE A NEW USER (TRIGGERS VERIFICATION EMAIL AND STORES METADATA HANDLES)
+        function initAuthListener() {
+            if (!supabase) return;
+            supabase.auth.onAuthStateChange((event, session) => {
+                const authSection = document.getElementById('auth-section');
+                const userSection = document.getElementById('user-section');
+                const publishSection = document.getElementById('publish-section');
+                const authWarning = document.getElementById('auth-warning');
+                const handleSpan = document.getElementById('display-user-handle');
+
+                if (session) {
+                    currentUser = session.user;
+                    authSection.style.display = 'none';
+                    userSection.style.display = 'block';
+                    publishSection.style.display = 'block';
+                    authWarning.style.display = 'none';
+                    handleSpan.innerText = (currentUser.user_metadata && currentUser.user_metadata.username) || currentUser.email;
+                } else {
+                    currentUser = null;
+                    authSection.style.display = 'block';
+                    userSection.style.display = 'none';
+                    publishSection.style.display = 'none';
+                    authWarning.style.display = 'block';
+                }
+                loadPosts();
+            });
+        }
+
         async function signUp() {
+            if (!supabase) return alert("Supabase configuration missing.");
             const username = document.getElementById('username').value.trim();
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
@@ -105,9 +124,7 @@
             const { data, error } = await supabase.auth.signUp({
                 email: email,
                 password: password,
-                options: {
-                    data: { username: username } // Save identity handle username inside user metadata
-                }
+                options: { data: { username: username } }
             });
 
             if (error) {
@@ -117,8 +134,8 @@
             }
         }
 
-        // 3. LOG INTO SYSTEM
         async function signIn() {
+            if (!supabase) return alert("Supabase configuration missing.");
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
 
@@ -128,22 +145,22 @@
             if (error) alert("Sign In failed: " + error.message);
         }
 
-        // 4. LOG OUT
         async function signOut() {
-            await supabase.auth.signOut();
+            if (supabase) await supabase.auth.signOut();
         }
 
-        // 5. CHANGE DISCUSSION CHANNELS
         function switchBoard(boardName) {
             currentBoard = boardName;
             document.getElementById('board-title').innerText = `Board: ${boardName}`;
-            loadPosts();
+            if (supabase) loadPosts();
         }
 
-        // 6. SUBMIT NEW RECORD POST
         async function publishPost() {
+            if (!supabase || !currentUser) return alert("You must be signed in to post.");
             const textInput = document.getElementById('post-content');
             if (!textInput.value.trim()) return alert("Post content cannot be empty.");
+
+            const usernameString = (currentUser.user_metadata && currentUser.user_metadata.username) || "Anonymous";
 
             const { error } = await supabase
                 .from('posts')
@@ -151,7 +168,7 @@
                     content: textInput.value, 
                     board: currentBoard, 
                     user_id: currentUser.id,
-                    username: currentUser.user_metadata.username || "Anonymous"
+                    username: usernameString
                 }]);
 
             if (error) {
@@ -162,8 +179,8 @@
             }
         }
 
-        // 7. GET AND CONSTRUCT FEED VISUALS
         async function loadPosts() {
+            if (!supabase) return;
             const container = document.getElementById('posts-container');
             container.innerHTML = 'Loading posts...';
 
@@ -174,29 +191,31 @@
                 .order('created_at', { ascending: false });
 
             if (error) {
-                container.innerHTML = 'Error loading posts.';
+                container.innerHTML = '<b style="color:red">Database fetch error.</b>';
                 return console.error(error);
             }
 
             container.innerHTML = '';
 
+            if (posts.length === 0) {
+                container.innerHTML = '<em>No posts in this board yet.</em>';
+                return;
+            }
+
             posts.forEach(post => {
                 const postDiv = document.createElement('div');
                 postDiv.className = 'post-card';
 
-                // Check if content column has been emptied out ("soft deleted")
                 const isContentDeleted = post.content === null || post.content.trim() === "";
                 const textDisplay = isContentDeleted 
                     ? "<em>[This post's content has been removed by the author]</em>" 
                     : post.content;
 
-                // Meta row displays username badge
                 postDiv.innerHTML = `
                     <div class="post-meta"><strong>@${post.username || 'unknown'}</strong></div>
-                    <p id="text-${post.id}">${textDisplay}</p>
+                    <p>${textDisplay}</p>
                 `;
 
-                // If logged-in user owns the post row, append the clear deletion tool
                 if (currentUser && currentUser.id === post.user_id && !isContentDeleted) {
                     const clearBtn = document.createElement('button');
                     clearBtn.className = 'delete-btn';
@@ -210,19 +229,17 @@
         }
 
         async function eraseContent(postId) {
+            if (!supabase) return;
             if (!confirm("Are you sure you want to delete this content? The post container will remain on the board.")) return;
 
             const { error } = await supabase
                 .from('posts')
-                .update({ content: "[post deleted by author]" }) // Changes string content data state to null
+                .update({ content: null }) 
                 .eq('id', postId);
 
             if (error) {
                 alert("Could not erase content: " + error.message);
-            } else {
-                loadPosts();
-            }
-        }
-    </script>
-</body>
-</html>
+} else {
+loadPosts();
+}
+}
