@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instant Community Forums</title>
-    <script src="https://unpkg.com"></script>
     <style>
         body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; background-color: #fafafa; }
         .auth-box { background: #ffffff; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
@@ -35,20 +34,20 @@
             <h3>Choose an Identity Handle</h3>
             <div class="auth-fields">
                 <input type="text" id="authUsername" placeholder="Enter username (e.g., Guest123)">
-                <button type="button" onclick="handleInstantJoin()">Join Forum Instantly</button>
+                <button type="button" id="joinBtn">Join Forum Instantly</button>
             </div>
         </div>
         <div id="loggedInUI" class="hidden">
             <p>Posting as: <strong id="userDisplayField"></strong></p>
-            <button type="button" onclick="handleLeave()" class="btn-secondary">Leave / Switch Account</button>
+            <button type="button" id="leaveBtn" class="btn-secondary">Leave / Switch Account</button>
         </div>
     </div>
 
     <!-- 2. BOARD NAVIGATION TABS -->
     <div class="nav-tabs">
-        <button type="button" class="tab-btn active" onclick="switchBoard(event, 'general')">📢 General</button>
-        <button type="button" class="tab-btn" onclick="switchBoard(event, 'gaming')">🎮 Gaming</button>
-        <button type="button" class="tab-btn" onclick="switchBoard(event, 'tech')">💻 Tech</button>
+        <button type="button" class="tab-btn active" data-board="general">📢 General</button>
+        <button type="button" class="tab-btn" data-board="gaming">🎮 Gaming</button>
+        <button type="button" class="tab-btn" data-board="tech">💻 Tech</button>
     </div>
 
     <h3 id="currentBoardTitle">Board: General</h3>
@@ -63,32 +62,35 @@
     <!-- 4. LIVE FEED CONTAINER -->
     <div id="postsContainer">Loading posts...</div>
 
-    <script>
+    <!-- FIXED: Added type="module" to import Supabase dynamically -->
+    <script type="module">
+        import { createClient } from 'https://jsdelivr.net';
+
         // --- CONFIGURATION ---
-        const SUPABASE_URL = "https://nurshaiuyycnuulvjsme.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnNoYWl1eXljbnV1bHZqc21lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzNDIxMjEsImV4cCI6MjEwNzkxODEyMX0.ckOnuBg8zw1peab02_GDxx_bChJrEsnXDnbCrN7rRjI";
-        
-let supabase;
-try {
-    // This perfectly connects to the unpkg library setup
-supabase = Supabase.createClient(MY_SUPABASE_URL, MY_SUPABASE_KEY);
-} catch (initError) {
-    console.error("Initialization failed: Check your URL/Keys", initError);
-}
+        const MY_SUPABASE_URL = "https://nurshaiuyycnuulvjsme.supabase.co"; 
+        const MY_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnNoYWl1eXljbnV1bHZqc21lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzNDIxMjEsImV4cCI6MjEwNzkxODEyMX0.ckOnuBg8zw1peab02_GDxx_bChJrEsnXDnbCrN7rRjI"; // Paste your complete key string here
+
+        const supabase = createClient(MY_SUPABASE_URL, MY_SUPABASE_KEY);
 
         const form = document.getElementById('postForm');
         const container = document.getElementById('postsContainer');
         let currentBoard = 'general';
         let currentUser = null;
 
+        // --- ATTACH BUTTON CLICKS (Fixed scoping issues for modules) ---
+        document.getElementById('joinBtn').addEventListener('click', handleInstantJoin);
+        document.getElementById('leaveBtn').addEventListener('click', handleLeave);
+        
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => switchBoard(e, e.target.getAttribute('data-board')));
+        });
+
         // --- AUTOMATIC SESSION TRACKING ---
-        if (supabase) {
-            supabase.auth.onAuthStateChange((event, session) => {
-                currentUser = session?.user || null;
-                updateAuthUI();
-                fetchPosts();
-            });
-        }
+        supabase.auth.onAuthStateChange((event, session) => {
+            currentUser = session?.user || null;
+            updateAuthUI();
+            fetchPosts();
+        });
 
         function updateAuthUI() {
             if (currentUser) {
@@ -108,35 +110,24 @@ supabase = Supabase.createClient(MY_SUPABASE_URL, MY_SUPABASE_KEY);
             }
         }
 
-        // --- EMAIL-FREE ANONYMOUS SIGN IN ---
+        // --- ANONYMOUS SIGN IN ---
         async function handleInstantJoin() {
             const usernameInput = document.getElementById('authUsername');
             const username = usernameInput.value.trim();
-            if(!username) {
-                alert("Please enter a username.");
-                return;
-            }
+            if(!username) return alert("Please enter a username.");
             
             try {
-                // FIXED: Direct options structure matching modern Supabase JS definitions
-                const { data, error } = await supabase.auth.signInAnonymously({ 
-                    options: {
-                        data: { username: username }
-                    }
+                const { error } = await supabase.auth.signInAnonymously({ 
+                    options: { data: { username: username } }
                 });
-                
-                if (error) {
-                    alert("Join error: " + error.message);
-                    console.error(error);
-                }
+                if (error) alert("Join error: " + error.message);
             } catch (err) {
-                alert("Critical authentication failure. See browser log console.");
                 console.error(err);
             }
         }
 
         async function handleLeave() {
-            if (supabase) await supabase.auth.signOut();
+            await supabase.auth.signOut();
         }
 
         // --- FORUM ACTIONS ---
@@ -145,17 +136,13 @@ supabase = Supabase.createClient(MY_SUPABASE_URL, MY_SUPABASE_KEY);
             document.getElementById('currentBoardTitle').innerText = `Board: ${boardName.charAt(0).toUpperCase() + boardName.slice(1)}`;
             
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            if(event && event.currentTarget) {
-                event.currentTarget.classList.add('active');
-            }
+            if(event && event.currentTarget) event.currentTarget.classList.add('active');
             
             fetchPosts();
         }
 
         async function fetchPosts() {
-            if (!supabase) return;
             container.innerHTML = "Loading posts...";
-            
             try {
                 const { data, error } = await supabase
                     .from('posts')
@@ -165,7 +152,6 @@ supabase = Supabase.createClient(MY_SUPABASE_URL, MY_SUPABASE_KEY);
 
                 if (error) {
                     container.innerHTML = "Error loading posts.";
-                    console.error(error);
                     return;
                 }
                 if (data.length === 0) {
@@ -181,13 +167,12 @@ supabase = Supabase.createClient(MY_SUPABASE_URL, MY_SUPABASE_KEY);
                 `).join('');
             } catch (fetchErr) {
                 container.innerHTML = "Failed connecting to database.";
-                console.error(fetchErr);
             }
         }
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!currentUser || !supabase) return alert("You must choose a handle first.");
+            if (!currentUser) return alert("You must choose a handle first.");
 
             const content = document.getElementById('content').value;
             const userHandle = currentUser.user_metadata?.username || "Anonymous";
@@ -202,7 +187,6 @@ supabase = Supabase.createClient(MY_SUPABASE_URL, MY_SUPABASE_KEY);
 
             if (error) {
                 alert("Failed to submit post.");
-                console.error(error);
             } else {
                 form.reset();
                 fetchPosts();
@@ -213,8 +197,7 @@ supabase = Supabase.createClient(MY_SUPABASE_URL, MY_SUPABASE_KEY);
             return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
         }
 
-        // Initial launch load run
-        setTimeout(fetchPosts, 300);
+        fetchPosts();
     </script>
 </body>
 </html>
