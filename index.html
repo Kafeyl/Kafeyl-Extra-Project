@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instant Community Forums</title>
     <!-- UPDATED: Using the absolute latest stable Supabase release -->
-    <script src="https://unpkg.com"></script>
+    <script src="https://jsdelivr.net"></script>
     <style>
         body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; background-color: #fafafa; }
         .auth-box { background: #ffffff; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
@@ -72,7 +72,7 @@
         // Double-check initialization to handle subdomain configurations securely
         let supabase;
         try {
-            supabase = supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            supabase = supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         } catch (initError) {
             console.error("Initialization failed: Check your URL/Keys", initError);
         }
