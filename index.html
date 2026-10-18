@@ -71,7 +71,7 @@
 let supabase;
 try {
     // This perfectly connects to the unpkg library setup
-    supabase = window.supabase.createClient(MY_SUPABASE_URL, MY_SUPABASE_KEY);
+supabase = Supabase.createClient(MY_SUPABASE_URL, MY_SUPABASE_KEY);
 } catch (initError) {
     console.error("Initialization failed: Check your URL/Keys", initError);
 }
