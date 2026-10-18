@@ -101,18 +101,23 @@
         }
 
         // --- EMAIL-FREE ANONYMOUS SIGN IN ---
-        async function handleInstantJoin() {
-            const username = document.getElementById('authUsername').value.trim();
-            if(!username) return alert("Please enter a username.");
-            
-            // Sign in anonymously while attaching custom user metadata payload parameters
-            const { error } = await supabase.auth.signInAnonymously({ 
-                options: {
-                    data: { username: username }
-                }
-            });
-            if (error) alert("Join error: " + error.message);
+async function handleInstantJoin() {
+    const username = document.getElementById('authUsername').value.trim();
+    if(!username) return alert("Please enter a username.");
+    
+    const { error } = await supabase.auth.signInAnonymously({ 
+        options: {
+            data: { username: username }
         }
+    });
+    
+    if (error) {
+        alert("Join error: " + error.message);
+    } else {
+        alert("Success! Joined the forum.");
+    }
+}
+
 
         async function handleLeave() {
             await supabase.auth.signOut();
