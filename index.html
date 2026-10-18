@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instant Community Forums</title>
-    <!-- UPDATED: Using the absolute latest stable Supabase release -->
-    <script src="https://jsdelivr.net"></script>
+    <script src="https://unpkg.com"></script>
     <style>
         body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; background-color: #fafafa; }
         .auth-box { background: #ffffff; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
@@ -69,13 +68,13 @@
         const SUPABASE_URL = "https://nurshaiuyycnuulvjsme.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnNoYWl1eXljbnV1bHZqc21lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzNDIxMjEsImV4cCI6MjEwNzkxODEyMX0.ckOnuBg8zw1peab02_GDxx_bChJrEsnXDnbCrN7rRjI";
         
-        // Double-check initialization to handle subdomain configurations securely
-        let supabase;
-        try {
-            supabase = supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        } catch (initError) {
-            console.error("Initialization failed: Check your URL/Keys", initError);
-        }
+let supabase;
+try {
+    // This perfectly connects to the unpkg library setup
+    supabase = window.supabase.createClient(MY_SUPABASE_URL, MY_SUPABASE_KEY);
+} catch (initError) {
+    console.error("Initialization failed: Check your URL/Keys", initError);
+}
 
         const form = document.getElementById('postForm');
         const container = document.getElementById('postsContainer');
