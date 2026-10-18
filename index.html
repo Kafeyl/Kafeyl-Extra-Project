@@ -66,13 +66,13 @@
 
     <script>
         // --- CONFIGURATION ---
-        const SUPABASE_URL = "YOUR_SUPABASE_URL";
-        const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+        const SUPABASE_URL = "https://nurshaiuyycnuulvjsme.supabase.co/rest/v1/";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnNoYWl1eXljbnV1bHZqc21lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzNDIxMjEsImV4cCI6MjEwNzkxODEyMX0.ckOnuBg8zw1peab02_GDxx_bChJrEsnXDnbCrN7rRjI";
         
         // Double-check initialization to handle subdomain configurations securely
         let supabase;
         try {
-            supabase = window.supabase.createClient("https://nurshaiuyycnuulvjsme.supabase.co/rest/v1/", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnNoYWl1eXljbnV1bHZqc21lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzNDIxMjEsImV4cCI6MjEwNzkxODEyMX0.ckOnuBg8zw1peab02_GDxx_bChJrEsnXDnbCrN7rRjI");
+            supabase = supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         } catch (initError) {
             console.error("Initialization failed: Check your URL/Keys", initError);
         }
