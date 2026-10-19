@@ -50,7 +50,7 @@
         <textarea id="post-content" rows="4" placeholder="Drop a post..."></textarea><br>
         <button onclick="publishPost()">Publish Post</button>
     </div>
-    <p id="auth-warning">Please pick a username and register above to post.</p>
+    <p id="auth-warning">Please pick a username and register above to drop a post.</p>
 
     <hr>
 
@@ -73,7 +73,7 @@
                 return;
             }
 
-            if (SUPABASE_URL === 'https://nurshaiuyycnuulvjsme.supabase.co' || SUPABASE_ANON_KEY === 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51cnNoYWl1eXljbnV1bHZqc21lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzNDIxMjEsImV4cCI6MjEwNzkxODEyMX0.ckOnuBg8zw1peab02_GDxx_bChJrEsnXDnbCrN7rRjI') {
+            if (SUPABASE_URL === 'YOUR_SUPABASE_URL' || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY') {
                 container.innerHTML = '<b style="color:orange">Config Warning: Insert your real Supabase URL & Key in the code.</b>';
                 return;
             }
@@ -239,7 +239,7 @@
 
             if (error) {
                 alert("Could not erase content: " + error.message);
-} else {
+                } else {
 loadPosts();
 }
 }
