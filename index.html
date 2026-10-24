@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instant Community Forums</title>
+    <title>Kafyl Forums</title>
     <script src="https://cloudflare.com"></script>
     <style>
         body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
@@ -17,16 +17,16 @@
 </head>
 <body>
 
-    <h2>Instant Community Forums</h2>
+    <h2>Kafyl Forums</h2>
 
     <!-- AUTHENTICATION FORM -->
     <div id="auth-section">
-        <h3>Choose an Identity Handle & Sign Up</h3>
+        <h3>Register/Login</h3>
         <input type="text" id="username" placeholder="Pick a username" required><br>
         <input type="email" id="email" placeholder="Enter your email" required><br>
         <input type="password" id="password" placeholder="Enter password (min 6 characters)" required><br>
-        <button onclick="signIn()">Sign In</button>
-        <button onclick="signUp()">Register (Verify Email)</button>
+        <button onclick="signIn()">Login</button>
+        <button onclick="signUp()">Register</button>
     </div>
 
     <!-- LOGGED IN ACCOUNT ROW -->
@@ -50,7 +50,7 @@
         <textarea id="post-content" rows="4" placeholder="Drop a post..."></textarea><br>
         <button onclick="publishPost()">Publish Post</button>
     </div>
-    <p id="auth-warning">Please pick a username and register above to drop a post.</p>
+    <p id="auth-warning">Please login to post.</p>
 
     <hr>
 
